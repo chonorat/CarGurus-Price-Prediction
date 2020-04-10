@@ -30,7 +30,7 @@ absolute error of predicted listing price on the test data set was $2850.  While
 to remember data such as trim package, condition, horsepower and vehicle accident history were not able to be collected
 of CarGurus.
 
-Despite not being very interpretable, the model is able to predict used car listing prices with imprecive accuracy despite
+Despite not being very interpretable, the model is able to predict used car listing prices with impressive accuracy despite
 lacking detailed information about the vehicle.  Further investigation and resolution of the heteroscedasticity would make
 the model and effects of the individual predictors more interpretable.  One possible remedy is to implement weighted least
 squares.
