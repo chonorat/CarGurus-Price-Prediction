@@ -26,18 +26,29 @@ visualise the data.
 
 # Model Interpretation
 Years Old: A one unit increase in years old predicts a 25.6% increase in vehicle price.
+
 Miles: Every additional mile is associated with a .00042% decrease in vehicle price.
+
 Model Average: A 1% increase in the average model price predicts a 1% increase vehicle price.
-Years Old x Miles: For every year older a vehicle is, the effect miles has on price decreases by .00001%
-Year Old X Model Average: For every year older a vehicle is, the effect model average has on price
-decreases by 3%.
+
+Years Old x Miles: For every year older a vehicle is, the effect miles has on price decreases by .00001%.
+
+Year Old X Model Average: For every year older a vehicle is, the effect model average has on price decreases by 3%.
+
 Coupe: Coupes are predicted to be 7.9% less expensive than convertibles.
+
 Hatch: Hatches are predicted to be 13.5% less expensive than convertibles.
+
 Minivans: Minivans are predicted to be 3.2% less expensive than convertibles.
+
 Pick-Ups: Pick Ups are predicted to be 6.8% more expensive than convertibles.
+
 Sedans: Sedans are predicted to be 10.3% less expensive than convertibles.
+
 SUV: SUVs are predicted to be 6.2% less expensive than converibles.
+
 Van: Vans are predicted to be 6.4% less expensive than convertibles.
+
 Wagon: Wagons are predicted to be 8% less expensive than convertibles.
 
 
