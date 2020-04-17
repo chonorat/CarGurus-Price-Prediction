@@ -7,8 +7,7 @@ what a used car should be priced at or determine if a used car's price can be co
 The full statistical analysis can be viewed in CarGurus Used Vehicle Report.pdf
 
 # Tools
-I used Python to scrape CarGurus and store the data in a local MySql data base.  I used R to visualise the data and 
-conduct a statistical analysis.
+I used Python and SQL to scrape data from CarGurus and store the data in a local MySql database.  I used R to visualise the data and conduct a statistical analysis.
 
 # The Data
 The data attributes I was able to gather from Cargurus include, Price, Miles, Transmission Type (Automatic or Manual),
