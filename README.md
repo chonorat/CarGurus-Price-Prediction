@@ -32,7 +32,7 @@ visualise the data.
 
 *Years Old x Miles:* For every year older a vehicle is, the effect miles has on price decreases by .00001%.
 
-*Year Old X Model Average:* For every year older a vehicle is, the effect model average has on price decreases by 3%.
+*Years Old X Model Average:* For every year older a vehicle is, the effect model average has on price decreases by 3%.
 
 *Coupe:* Coupes are predicted to be 7.9% less expensive than convertibles.
 
