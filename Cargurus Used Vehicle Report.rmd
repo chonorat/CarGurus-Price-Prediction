@@ -1,0 +1,181 @@
+---
+title: 
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+theme: cerulean
+
+
+
+
+---
+\centering
+**CarGurus Used Vehicle Price Analysis**
+
+Introduction
+
+\raggedright
+The goal off this project was to analyze used car listings from the website CarGurus in order to better understand how certain factors influence a used cars price. A secondary goal was to use the developed model in order to predict what a used car should be priced at or determine if a used car's price can be considered a 'Good Deal' or a 'Bad Deal'. The data attributes I was able to scrape from CarGurus using Python include, Price, Miles, Transmission Type (Automatic or Manual), Model, Make, Year, and Vehicle Class (Sedan, Mini-Van, Truck, etc.). I also included a field for whether or not the manufacturer was a luxury brand or not.  I opted to only include cars from current manufacturers that have a relatively large volume of posting on CarGurus.  Therefore manufactueres such as Mercury and Tesla were omitted from the data. Furthermore, I decided to ommitt cars over $65,000 dollars and cars under $2000 dollars.  Used cars above $65,000 are luxury vehicles that may include many trim and powertrain options which help maintain the resale value regardless of some of the factors incorporated in the model.  Cars under $2000 were ommitted because, in my experieince, essentially any car that can be driven off the lot can be sold for $1000 regardless of year, make, model etc. Lastly cars manufactured before 2006 were omited because few cars older than this were posted on CarGurus. Lets now begin with some plots to visualise the data.
+
+
+```{r, echo=FALSE, include=FALSE,fig.height = 3, fig.width = 4}
+library(ggplot2)
+library(sqldf)
+library(gridExtra)
+library(lmtest)
+library(car)
+library(MASS)
+#options(scipen=999)
+car=read.csv("/home/chris/Desktop/carproject/personal project/rcartraindata.csv",header=TRUE)
+cartest=read.csv("/home/chris/Desktop/carproject/personal project/rcartestdata.csv",header=TRUE)
+car=sqldf("select * from car where year>2005 and price <65000 and price>2000")
+cartest=sqldf("select * from cartest where year>2005 and price <65000 and price >2000")
+```
+
+
+```{r, echo=FALSE,fig.height = 4, fig.width = 4,fig.align='center'}
+#luxavg
+ggplot(data=car,aes(x=reorder(lux,price),y=price,fill=lux))+geom_boxplot()+theme(axis.text.x = element_text(angle=90),legend.position = 'none')+xlab("Luxury")+ylab('Price')+ggtitle("A. Used Vehicle Price by Luxury Status")+theme(plot.title=element_text(hjust=.5))+theme(plot.title = element_text(size=10))+scale_y_continuous(breaks=seq(0,85000,by=10000))
+```
+
+  * The average used car price for luxury vehicles is over $10,000 more than that of non luxury vehicles.
+  * Both luxury and non-luxury categories are heavily skewed towards higher values.  A log transformaton of price will be needed.
+
+```{r, echo=FALSE,fig.height = 4, fig.width = 5,fig.align='center'}
+#makeavgplot
+ggplot(data=car,aes(x=reorder(make,price),y=price,fill=make))+geom_boxplot()+theme(axis.text.x = element_text(angle=90),legend.position = 'none')+xlab("Manufacturer")+ylab('Price')+ggtitle("B. Used Car Price by Manufacturer")+theme(plot.title=element_text(hjust=.5))+theme(plot.title = element_text(size=10))+scale_y_continuous(breaks=seq(0,85000,by=10000))
+```
+
+  * As expected and somewhat obvious, manufacturers typically associated with budget options have a lower average price and more luxury brands have a higher average price. 
+  * More interesting is the variablility in luxury prices.  Audi, BMW, Infinitty, Lincoln, Volvo, Acura, Cadillac, and Lexus are typically considered luxury brnads however their average used prices are signifigantly lower than Porsche and Bentley's average used price.  Mercedes, Jaguar and Land seem to occupy a middle ground between these two groups but are still over $10,000 more expense on average than Audi, BMW and the rest.
+  * GMC has an average used price similar to luxury brands.  This is most likely because GMC mainly sells Pick-Up trucks, which are typiclly more expensive than other classes of vehicles.  
+
+
+```{r, echo=FALSE,fig.height = 3, fig.width = 4,fig.align='center'}
+ggplot(data=car,aes(x=reorder(type,price),y=price,fill=type))+geom_boxplot()+theme(axis.text.x = element_text(angle=90),legend.position = 'none')+xlab("Vehicle Class")+ylab('Price')+ggtitle("C. Used Price by Vehicle Class")+theme(plot.title=element_text(hjust=.5))+theme(plot.title = element_text(size=10))+scale_y_continuous(breaks=seq(0,85000,by=10000))
+```
+
+  * From Figure C. above we see how average used car price varies by vehicle class. Hatchbacks appear to be the budget class followed by sedans, wagons, and minivans.  Intuitively, Pick-up trucks are the most expensive, most likely due to their size, robust suspension, and large powertrain.  Convertables are also expensive presumaby because they are often luxury vehicles.
+  
+  
+  
+```{r, echo=FALSE,fig.height = 2.5, fig.width = 3,fig.align='center'}  
+#transavg
+transavg=sqldf("select trans, avg(price) avg from car group by trans")
+ggplot(data=transavg,aes(x=trans,y=avg))+geom_bar(stat='identity',fill='blue4')+xlab("Transmission Type")+ylab("Average Price")+ggtitle("D. Avg Price by Trans Type")+theme(plot.title = element_text(hjust = 0.5))+theme(plot.title = element_text(size=10))
+```
+
+  * From Figure D. the average price for manual transmission cars is a approximately two thousand dollars more than automatic transmission cars.  Traditionally however, manual transmission cars are cheaper than automatic cars.  The difference observed may be because not many manual transmission cars are sold anymore and the ones that are tend to be performance vehicles with higher end components. However, this difference does not appear large and transmission type will not be included in the model.
+  
+  
+  
+```{r, echo=FALSE,fig.height = 3, fig.width = 6,fig.align='center'}    
+#makemodavgplot
+p1=ggplot(data=car,aes(x=makemodavg,y=price))+geom_point()+xlab("Model Average")+ylab("Price")+ggtitle("E. Used Car Price vs Model Average")+scale_y_continuous(labels=scales::comma)+scale_x_continuous(labels=scales::comma)+ theme(plot.title = element_text(size=8))+theme(plot.title = element_text(hjust = 0.5))
+p2=ggplot(data=car,aes(x=log(makemodavg),y=log(price)))+geom_point()+xlab("Log Model Average")+ylab("Log Price")+ggtitle("F. Log Use Car Price vs Log Model Average")+scale_y_continuous(labels=scales::comma)+scale_x_continuous(labels=scales::comma)+ theme(plot.title = element_text(size=8))+theme(plot.title = element_text(hjust = 0.5))
+grid.arrange(p1, p2, ncol = 2)
+```
+
+  * To incorporate make and model into the model, I decided to target encode the variables because there are many different levels.  Target, or mean encoding, creates a new variable out of the mean responses by level of the original variable.  Given the Figure E., the relationship between average price by make and model and price does not appear linear.  However taking the log of both price and the average price by make and model appears to linearize the relationship, as seen in Figure F. 
+  
+  
+  
+```{r, echo=FALSE,fig.height = 3, fig.width = 4,fig.align='center'}    
+#yearavg
+car['year1']=as.factor(car$year)
+cartest['year1']=as.factor(cartest$year)
+ggplot(data=car,aes(x=reorder(year1,price),y=price,fill=year1))+geom_boxplot()+theme(axis.text.x = element_text(angle=90),legend.position = 'none')+xlab("Year")+ylab('Price')+ggtitle("G. Used Vehicle Price by Year")+theme(plot.title=element_text(hjust=.5))+theme(plot.title = element_text(size=10))+scale_y_continuous(breaks=seq(0,85000,by=10000))
+```
+
+
+  * The relationship between model-year and average used is plotted in Figure G.  As expected, the average values generally increase year after year. Where this is not the case may be the product of sampling error.  Furthermore from 2006 to 2010, the average used vehicle price doesn't increase much at all.  After 2010, the increase in average price accelaerates until 2020.  The difference between the 2019 and 2020 price is nearly $10,000.  The drastic increase from 2019 to 2010 could be because 2020 cars have the most up to date features and are considered 'new'.
+  
+  
+```{r, echo=FALSE,fig.height = 2.7, fig.width = 5.5,fig.align='center'}    
+#milesplot
+p1=ggplot(data=car,aes(x=miles,y=price))+geom_point()+ylab("Price")+xlab("Miles")+ggtitle("Car Price vs Miles")+scale_x_continuous(labels=scales::comma)+theme(plot.title = element_text(hjust = 0.5))+theme(plot.title = element_text(size=8))
+p2=ggplot(data=car,aes(x=miles,y=log(price)))+geom_point()+ylab("Log of Price")+xlab("Miles")+ggtitle("H. Car Price vs Miles")+scale_x_continuous(labels=scales::comma)+theme(plot.title = element_text(hjust = 0.5))+theme(plot.title = element_text(size=8))
+grid.arrange(p1, p2, ncol = 2)
+```
+
+  * There appears to be an exponential relationship between price and miles in Figure H.  The price of a vehicle seems to decrease exponentially as the amount of miles increases.  Taking the log of price linearizes this relationship.
+
+\centering
+**Model Summary**
+
+
+\raggedright
+ 
+The model is specified as log(price)~year+type+miles+log(makemodavg)+type*miles.  The model achieves a high R-Squared of 82%.  The residuals plots below indicate some assumptions of linear regression have been violated.  There appears to be some non-linearity structured in the residuals.  The tails also appear heavy.  However, since the number of observations is large, non-normal errors should not lead to biased estimators. The most import assumption is that error variance is constant to ensure that P-Value estimates are accurate. Regardless, I would like to build a model with all regression errors assumptions satisfied.
+```{r, echo=FALSE,fig.height = 4.5, fig.width = 5.4,fig.align='center'}  
+model<-lm(log(price)~year1+type+miles+log(makemodavg)+type*miles,data=car)
+car["res"]=model$residuals
+car["fit"]=fitted(model)
+plot(model,which=1)
+
+```
+
+```{r, echo=FALSE,fig.height = 3.8, fig.width = 5.4,fig.align='center'}  
+plot(model,main =NULL,which=2,cex.lab=.3)
+```
+A plot of the observation index number vs the Cook's Distance reveals the most influential observations occur with lower indexes.  Since the data is sorted by model-year, we can extraploate that older model-year vehicles are distorting the model.  Instead of treating year as a factor, lets create a "Years Old" variable which can then be transformed or used to create interaction terms without heavily effecting the model degrees of freedom. 
+
+```{r, echo=FALSE,fig.height = 3, fig.width = 3,fig.align='center'}
+cooksd=cooks.distance(model)
+sample_size <- nrow(car)
+plot(cooksd, pch="*", cex=1,cex.main=1, main="Observations by Cooks distance")
+abline(h = 4/sample_size, col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4/sample_size, names(cooksd),""), col="red")
+car['yearold']=2021-car$year
+cartest['yearold']=2021-cartest$year
+
+```
+
+
+The new model is specified as the following: log(price)~yearold + type+miles + log(makemodavg) + (log(makemodavg) x yearold) + (yearold x miles). The R-Squared term has increased but more importantly the non linearity in the residuals has been remediated.  Furthermore, every main and interaction effect is signifigant at the .05 level.
+```{r, echo=FALSE,fig.height = 4.5, fig.width = 6,fig.align='center'}
+
+model<-lm(log(price)~yearold+type+miles+log(makemodavg)+log(makemodavg)*yearold+yearold*miles,data=car)
+options(scipen=999)
+round(summary(model)$coefficients,digits=7)
+plot(model,which=1)
+
+
+```
+
+\centering
+**Model Interpretation** 
+
+\raggedright
+
+  * Years Old: A one unit increase in years old predicts a 25.6% increase in vehicle price.
+  * Miles: Every additional mile is associated with a .00042% decrease in vehicle price.
+  * Model Average: A 1% increase in the average model price predicts a 1% increase vehicle price.
+  * Years Old x Miles: For every year older a vehicle is, the effect miles has on price decreases by .00001%
+  * Year Old X Model Average: For every year older a vehicle is, the effect model average has on price decreases by 3%.
+  * Coupe: Coupes are predicted to be 7.9% less expensive than convertibles.
+  * Hatch: Hatches are predicted to be 13.5% less expensive than convertibles.
+  * Minivans: Minivans are predicted to be 3.2% less expensive than convertibles.
+  * Pick-Ups: Pick Ups are predicted to be 6.8% more expensive than convertibles.
+  * Sedans: Sedans are predicted to be 10.3% less expensive than convertibles.
+  * SUV: SUVs are predicted to be 6.2% less expensive than converibles.
+  * Van: Vans are predicted to be 6.4% less expensive than convertibles.
+  * Wagon: Wagons are predicted to be 8% less expensive than convertibles.
+
+\centering
+**Conclusion** 
+
+\raggedright
+
+  * Overall the model was able to explain almost 83% of the used car price on CarGurus listings. Since the constant variance assumption of the error was satisfied, the P-Values for the coefficients are accurate and the model can be used for inferential purposes.  The average absolute prediction error for the test data is $2,830.  While this may seem high, it is important to remember data such as trim package, condition, horsepower and vehicle accident history were not available from CarGurus.
+  * $8,986 is the model's prediciton for the listing price of my own personal car on CarGurus.  I own a 2013 Ford Fusion with 100,000 miles and an automatic transmission. The model's prediction appears consistent with the search results on CarGurus for vehicles with the same specifications.  It is important to note the model does not attempt to predict the true market value for each vehicle, rather the estimated price it would be listed for on CarGurus.
+  * The model is able to predict used car listing prices with impressive accuracy despite lacking detailed information about the vehicle.  I feel the model has exhausted any possible variation that could reasonably explained by the collected attributes. Collecting data for other fields such as trim, horsepower, and accident history would likely greatly improve the model.
+  
+```{r, echo=FALSE,fig.height = 3, fig.width = 6,fig.align='center'}    
+#predictions <- 2.7182**predict(model, cartest)
+#ase=mean(((cartest$price-predictions)**2)**.5)
+#ase
+#newdata=data.frame(yearold=8,type='sedan',miles=100000,lux=0,makemodavg=14007)
+#2.718**predict(model, newdata) 
+```
